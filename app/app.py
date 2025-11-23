@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 
 import pandas as pd
 import streamlit as st
+import plotly.express as px
 
 # Configure the page
 st.set_page_config(
@@ -62,8 +63,8 @@ def load_marriage_data() -> Tuple[Optional[pd.DataFrame], str]:
 def render_overview() -> None:
     st.header("Overview")
     st.caption(
-        "Showing demo charts built from synthetic CSVs. These will be replaced "
-        "with validated federal datasets (e.g., Census, BLS, FBI, CDC) in future updates."
+        "A concise, demo-based snapshot of national trends. Real datasets (Census, BLS, FBI, CDC) "
+        "will replace these placeholders soon."
     )
 
     # Load demo datasets (replace with production loaders when real data is available)
@@ -72,81 +73,174 @@ def render_overview() -> None:
     crime_df = load_dataset("violent_crime_demo.csv", "Violent crime rate")
     suicide_df = load_dataset("suicide_rate_demo.csv", "Suicide rate")
 
-    # KPI row using the most recent year in each dataset
-    metrics = st.columns(4)
+    palette = {
+        "marriage": "#4C78A8",
+        "income": "#59A14F",
+        "unemployment": "#F28E2B",
+        "crime": "#E15759",
+        "suicide": "#B07AA1",
+    }
+
+    def kpi_card(column, label: str, value: str, description: str, accent: str) -> None:
+        """Render a lightly styled KPI card within a column."""
+
+        card_style = (
+            f"background-color: {accent}15;"
+            "padding: 16px;"
+            "border-radius: 12px;"
+            "border: 1px solid rgba(0,0,0,0.04);"
+        )
+        with column:
+            st.markdown(
+                f"""
+                <div style="{card_style}">
+                    <div style="font-size: 14px; color: #6b7280; margin-bottom: 6px;">{label}</div>
+                    <div style="font-size: 26px; font-weight: 700; color: #111827;">{value}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.caption(description)
+
+    st.divider()
+    st.subheader("Key indicators (latest demo year)")
+    kpi_cols = st.columns(4)
+
     if marriage_df is not None and not marriage_df.empty:
         latest_marriage = marriage_df.sort_values("year").iloc[-1]
-        metrics[0].metric(
+        kpi_card(
+            kpi_cols[0],
             "Marriage rate (per 1,000)",
             f"{latest_marriage['marriage_rate_per_1000']:.2f}",
-            help="Demo value for the most recent year in the synthetic dataset.",
+            "Demo value for the most recent year in the synthetic dataset.",
+            palette["marriage"],
         )
     else:
-        metrics[0].metric("Marriage rate (per 1,000)", "—")
+        kpi_card(kpi_cols[0], "Marriage rate (per 1,000)", "—", "No data available.", palette["marriage"])
 
     if income_df is not None and not income_df.empty:
         latest_income = income_df.sort_values("year").iloc[-1]
-        metrics[1].metric(
-            "Median income (USD)",
+        kpi_card(
+            kpi_cols[1],
+            "Median income",
             f"${latest_income['median_income']:,.0f}",
-            help="Demo value for the most recent year in the synthetic dataset.",
+            "Demo value for the most recent year in the synthetic dataset.",
+            palette["income"],
         )
     else:
-        metrics[1].metric("Median income (USD)", "—")
+        kpi_card(kpi_cols[1], "Median income", "—", "No data available.", palette["income"])
 
     if crime_df is not None and not crime_df.empty:
         latest_crime = crime_df.sort_values("year").iloc[-1]
-        metrics[2].metric(
+        kpi_card(
+            kpi_cols[2],
             "Violent crime (per 100k)",
             f"{latest_crime['violent_crime_rate_per_100k']:.1f}",
-            help="Demo value for the most recent year in the synthetic dataset.",
+            "Demo value for the most recent year in the synthetic dataset.",
+            palette["crime"],
         )
     else:
-        metrics[2].metric("Violent crime (per 100k)", "—")
+        kpi_card(
+            kpi_cols[2],
+            "Violent crime (per 100k)",
+            "—",
+            "No data available.",
+            palette["crime"],
+        )
 
     if suicide_df is not None and not suicide_df.empty:
         latest_suicide = suicide_df.sort_values("year").iloc[-1]
-        metrics[3].metric(
+        kpi_card(
+            kpi_cols[3],
             "Suicide rate (per 100k)",
             f"{latest_suicide['suicide_rate_per_100k']:.2f}",
-            help="Demo value for the most recent year in the synthetic dataset.",
+            "Demo value for the most recent year in the synthetic dataset.",
+            palette["suicide"],
         )
     else:
-        metrics[3].metric("Suicide rate (per 100k)", "—")
+        kpi_card(
+            kpi_cols[3],
+            "Suicide rate (per 100k)",
+            "—",
+            "No data available.",
+            palette["suicide"],
+        )
 
-    # Line charts for trends
+    st.write(" ")
+    st.divider()
+
     chart_ready = all(
         df is not None and not df.empty for df in [marriage_df, income_df, crime_df, suicide_df]
     )
 
-    if chart_ready:
-        # Socio-economic chart
-        socio_df = (
-            marriage_df.merge(income_df, on="year", how="inner")
-            .rename(
-                columns={
-                    "marriage_rate_per_1000": "Marriage rate (per 1,000)",
-                    "median_income": "Median income (USD)",
-                }
-            )
-            .set_index("year")
+    def line_chart(df: pd.DataFrame, y: str, color: str, title: str, y_label: str) -> None:
+        fig = px.line(
+            df.sort_values("year"),
+            x="year",
+            y=y,
+            line_shape="spline",
+            color_discrete_sequence=[color],
+            hover_data={"year": True, y: True},
+            markers=False,
         )
-        st.subheader("Socio-economic trends (demo)")
-        st.line_chart(socio_df, height=340)
+        fig.update_layout(
+            title=title,
+            margin=dict(l=10, r=10, t=40, b=10),
+            height=340,
+            yaxis_title=y_label,
+            xaxis_title="Year",
+            hovermode="x unified",
+            template="plotly_white",
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-        # Safety and mental health chart
-        safety_df = (
-            crime_df.merge(suicide_df, on="year", how="inner")
-            .rename(
-                columns={
-                    "violent_crime_rate_per_100k": "Violent crime (per 100k)",
-                    "suicide_rate_per_100k": "Suicide rate (per 100k)",
-                }
+    if chart_ready:
+        row1_col1, row1_col2 = st.columns(2)
+        with row1_col1:
+            line_chart(
+                marriage_df,
+                "marriage_rate_per_1000",
+                palette["marriage"],
+                "Marriage rate over time",
+                "Marriages per 1,000 people",
             )
-            .set_index("year")
-        )
-        st.subheader("Crime and mental health trends (demo)")
-        st.line_chart(safety_df, height=340)
+            st.caption("Marriage rates remain a cornerstone demographic indicator, shown here year over year.")
+
+        with row1_col2:
+            line_chart(
+                income_df,
+                "median_income",
+                palette["income"],
+                "Median household income over time",
+                "Median income (USD)",
+            )
+            st.caption("Income trends illustrate purchasing power shifts across the demo period.")
+
+        st.write(" ")
+        row2_col1, row2_col2 = st.columns(2)
+        with row2_col1:
+            # Unemployment series is only available in the income dataset
+            if "unemployment_rate_pct" in income_df.columns:
+                line_chart(
+                    income_df,
+                    "unemployment_rate_pct",
+                    palette["unemployment"],
+                    "Unemployment rate over time",
+                    "Unemployment (%)",
+                )
+                st.caption("Labor market softness is captured via demo unemployment rates by year.")
+            else:
+                st.info("Unemployment rate series is not available in the demo dataset.")
+
+        with row2_col2:
+            line_chart(
+                suicide_df,
+                "suicide_rate_per_100k",
+                palette["suicide"],
+                "Suicide rate over time",
+                "Suicides per 100,000 people",
+            )
+            st.caption("Mental health strain appears as changes in the annual suicide rate.")
     else:
         st.info(
             "Charts will render once the demo CSVs are available. This helps "
