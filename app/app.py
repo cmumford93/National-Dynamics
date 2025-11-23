@@ -5,12 +5,9 @@ crime, and mental health indicators.
 """
 
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
-A minimal placeholder dashboard for U.S. social, economic, religious, family,
-crime, and mental health indicators.
-"""
-
 import streamlit as st
 
 # Configure the page
@@ -24,13 +21,13 @@ st.set_page_config(
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
-def load_dataset(filename: str, friendly_name: str) -> pd.DataFrame | None:
+def load_dataset(filename: str, friendly_name: str) -> Optional[pd.DataFrame]:
     """
     Load a CSV from the data directory.
 
-    The demo files include a comment header noting they are synthetic; the
-    comment parameter skips those lines. Real federal datasets will replace
-    these placeholders in future iterations.
+    Demo files include a comment header noting they are synthetic; the comment
+    parameter skips those lines. Real federal datasets will replace these
+    placeholders in future iterations.
     """
 
     path = DATA_DIR / filename
@@ -46,27 +43,7 @@ def load_dataset(filename: str, friendly_name: str) -> pd.DataFrame | None:
     return None
 
 
-# App title and description
-st.title("National Dynamics")
-st.write(
-    "A U.S. social, economic, religious, family, crime, and mental health "
-    "indicator viewer. This dashboard will evolve to provide neutral, "
-    "data-driven insights across core societal domains."
-)
-
-# Sidebar navigation
-st.sidebar.title("Navigation")
-nav_options = [
-    "Overview",
-    "Family Structure",
-    "Economics",
-    "Crime & Safety",
-    "Mental Health",
-    "About",
-]
-selected_section = st.sidebar.radio("Select a page", nav_options)
-
-if selected_section == "Overview":
+def render_overview() -> None:
     st.header("Overview")
     st.caption(
         "Showing demo charts built from synthetic CSVs. These will be replaced "
@@ -123,8 +100,7 @@ if selected_section == "Overview":
 
     # Line charts for trends
     chart_ready = all(
-        df is not None and not df.empty
-        for df in [marriage_df, income_df, crime_df, suicide_df]
+        df is not None and not df.empty for df in [marriage_df, income_df, crime_df, suicide_df]
     )
 
     if chart_ready:
@@ -161,58 +137,73 @@ if selected_section == "Overview":
             "ensure the app handles missing data gracefully."
         )
 
-elif selected_section == "Family Structure":
-    st.header("Family Structure")
+
+def render_placeholder(title: str, description: str) -> None:
+    st.header(title)
+    st.write(description)
+
+
+def main() -> None:
+    # App title and description
+    st.title("National Dynamics")
     st.write(
-        "Placeholder content. Family-related indicators (e.g., marriage, divorce, "
-        "household composition) will integrate validated datasets in upcoming iterations."
+        "A U.S. social, economic, religious, family, crime, and mental health "
+        "indicator viewer. This dashboard will evolve to provide neutral, "
+        "data-driven insights across core societal domains."
     )
 
-elif selected_section == "Economics":
-    st.header("Economics")
-    st.write(
-        "Placeholder content. Economic indicators (e.g., income, employment, "
-        "inflation) will be wired to official data sources in future updates."
+    # Sidebar navigation
+    st.sidebar.title("Navigation")
+    nav_options = [
+        "Overview",
+        "Family Structure",
+        "Economics",
+        "Crime & Safety",
+        "Mental Health",
+        "About",
+    ]
+    selected_section = st.sidebar.radio("Select a page", nav_options)
+
+    if selected_section == "Overview":
+        render_overview()
+    elif selected_section == "Family Structure":
+        render_placeholder(
+            "Family Structure",
+            "Placeholder content. Family-related indicators (e.g., marriage, divorce, "
+            "household composition) will integrate validated datasets in upcoming iterations.",
+        )
+    elif selected_section == "Economics":
+        render_placeholder(
+            "Economics",
+            "Placeholder content. Economic indicators (e.g., income, employment, inflation) "
+            "will be wired to official data sources in future updates.",
+        )
+    elif selected_section == "Crime & Safety":
+        render_placeholder(
+            "Crime & Safety",
+            "Placeholder content. Crime and public safety indicators will be connected to "
+            "standardized datasets (e.g., FBI UCR/NCVS) in later releases.",
+        )
+    elif selected_section == "Mental Health":
+        render_placeholder(
+            "Mental Health",
+            "Placeholder content. Mental and behavioral health indicators will be drawn from "
+            "reputable public sources in subsequent updates.",
+        )
+    elif selected_section == "About":
+        render_placeholder(
+            "About",
+            "This dashboard is under active development. Demo data is used for now; future "
+            "versions will feature reproducible pipelines, methods, and source documentation "
+            "for all indicators.",
+        )
+
+    # Notes for future development
+    st.info(
+        "Demo data is currently loaded from synthetic CSVs in the data/ directory. "
+        "Replace these with curated federal datasets and documented ETL pipelines as the platform matures."
     )
 
-elif selected_section == "Crime & Safety":
-    st.header("Crime & Safety")
-    st.write(
-        "Placeholder content. Crime and public safety indicators will be connected "
-        "to standardized datasets (e.g., FBI UCR/NCVS) in later releases."
-    )
 
-elif selected_section == "Mental Health":
-    st.header("Mental Health")
-    st.write(
-        "Placeholder content. Mental and behavioral health indicators will be "
-        "drawn from reputable public sources in subsequent updates."
-    )
-
-elif selected_section == "About":
-    st.header("About")
-    st.write(
-        "This dashboard is under active development. Demo data is used for now; "
-        "future versions will feature reproducible pipelines, methods, and "
-        "source documentation for all indicators."
-    )
-
-# Notes for future development
-st.info(
-    "Demo data is currently loaded from synthetic CSVs in the data/ directory. "
-    "Replace these with curated federal datasets and documented ETL pipelines "
-    "as the platform matures."
-# Page content based on selection
-st.header(f"{selected_section} (Placeholder)")
-
-# Placeholder areas for future content
-st.write(
-    "Future sections will include charts, datasets, key performance indicators "
-    "(KPIs), and narrative analysis tailored to each domain."
-)
-
-# Notes for future development
-st.info(
-    "Add data loading, preprocessing, and visualization components in the "
-    "sections above once datasets are available."
-)
+if __name__ == "__main__":
+    main()
