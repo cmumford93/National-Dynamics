@@ -11,13 +11,33 @@ import streamlit as st
 st.set_page_config(page_title="Variable Comparison (Beta)", page_icon="📊", layout="wide")
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+FRIENDLY_LABELS = {
+    ("unemployment_rate_demo.csv", "unemployment_rate_pct"): "Unemployment rate (demo, %)",
+    ("unemployment_rate_real.csv", "unemployment_rate_pct"): "Unemployment rate (BLS, %)",
+    ("median_income_demo.csv", "median_income"): "Median household income (demo, $)",
+    ("cpi_index_demo.csv", "cpi_index"): "CPI (price index, demo)",
+    ("violent_crime_demo.csv", "violent_crime_rate_per_100k"): "Violent crime rate (demo, per 100,000)",
+    ("mass_shootings_demo.csv", "incidents"): "Mass incidents (demo, count)",
+    ("marriage_rate_demo.csv", "marriage_rate_per_1000"): "Marriage rate (demo, per 1,000)",
+    ("marriage_rate_real.csv", "marriage_rate_per_1000_population"): "Marriage rate (CDC, per 1,000)",
+    ("mental_health_demo.csv", "depression_rate_pct"): "Depression rate (demo, %)",
+    ("mental_health_demo.csv", "anxiety_rate_pct"): "Anxiety rate (demo, %)",
+    ("mental_health_demo.csv", "suicide_rate_per_100k"): "Suicide rate (demo, per 100,000)",
+    ("household_types_demo.csv", "married_couple_households"): "Married couple households (demo)",
+    ("household_types_demo.csv", "single_parent_households"): "Single parent households (demo)",
+    ("household_types_demo.csv", "cohabiting_couple_households"): "Cohabiting couple households (demo)",
+    ("household_types_demo.csv", "other_households"): "Other households (demo)",
+    ("religion_trends_demo.csv", "christian_pct"): "Christian identification (demo, %)",
+    ("religion_trends_demo.csv", "catholic_pct"): "Catholic identification (demo, %)",
+    ("religion_trends_demo.csv", "unaffiliated_pct"): "Unaffiliated (demo, %)",
+}
 
 
 @st.cache_data(show_spinner=False)
-def load_numeric_variables() -> Dict[str, pd.DataFrame]:
+def load_numeric_variables() -> Dict[str, Tuple[str, pd.DataFrame]]:
     """Load numeric columns from every CSV in the data directory."""
 
-    variables: Dict[str, pd.DataFrame] = {}
+    variables: Dict[str, Tuple[str, pd.DataFrame]] = {}
     if not DATA_DIR.exists():
         st.warning(f"Data directory not found at `{DATA_DIR}`. Add CSV files to begin.")
         return variables
@@ -48,8 +68,10 @@ def load_numeric_variables() -> Dict[str, pd.DataFrame]:
             variable_df = pd.DataFrame({"value": series})
             if year_series is not None:
                 variable_df["year"] = year_series
-            label = f"{csv_path.name} — {column}"
-            variables[label] = variable_df.dropna(subset=["value"])
+
+            key = f"{csv_path.name}:{column}"
+            label = FRIENDLY_LABELS.get((csv_path.name, column), f"{csv_path.name} — {column}")
+            variables[key] = (label, variable_df.dropna(subset=["value"]))
 
     return variables
 
@@ -127,28 +149,36 @@ if not variables:
     st.info("No numeric variables found. Add CSV files to the data directory to begin.")
     st.stop()
 
-options = ["Select a variable"] + list(variables.keys())
+sorted_items = sorted(variables.items(), key=lambda kv: kv[1][0])
+options = ["Select a variable"] + [key for key, _ in sorted_items]
 
 col1, col2 = st.columns(2)
 with col1:
-    var_a_label = st.selectbox("Variable A", options, index=0)
+    var_a_key = st.selectbox(
+        "Variable A", options, index=0, format_func=lambda k: "Select a variable" if k == "Select a variable" else variables[k][0]
+    )
 with col2:
-    var_b_label = st.selectbox("Variable B", options, index=0)
+    var_b_key = st.selectbox(
+        "Variable B", options, index=0, format_func=lambda k: "Select a variable" if k == "Select a variable" else variables[k][0]
+    )
 
-if var_a_label == "Select a variable" or var_b_label == "Select a variable":
+if var_a_key == "Select a variable" or var_b_key == "Select a variable":
     st.info("Pick two variables to generate the scatter plot and summary.")
     st.stop()
 
-if var_a_label == var_b_label:
+if var_a_key == var_b_key:
     st.warning("Please select two different variables.")
     st.stop()
 
-var_a = variables.get(var_a_label)
-var_b = variables.get(var_b_label)
+var_a_meta = variables.get(var_a_key)
+var_b_meta = variables.get(var_b_key)
 
-if var_a is None or var_b is None:
+if var_a_meta is None or var_b_meta is None:
     st.error("Selected variables could not be loaded. Please choose another combination.")
     st.stop()
+
+var_a_label, var_a = var_a_meta
+var_b_label, var_b = var_b_meta
 
 aligned_df, year_range = align_variables(var_a, var_b, var_a_label, var_b_label)
 
