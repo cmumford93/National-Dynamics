@@ -175,7 +175,54 @@ def render_family_structure() -> None:
         st.info(
             "Charts will appear once the demo CSVs are available. This ensures "
             "the page handles missing files gracefully."
+    )
+
+
+def render_religion_culture() -> None:
+    st.header("Religion & Culture (Demo)")
+    st.write(
+        "Synthetic trends for Christian, Catholic, and unaffiliated identification. "
+        "These values are placeholders until vetted sources (e.g., Pew Research, "
+        "GSS, CARA) are integrated."
+    )
+
+    religion_df = load_dataset("religion_trends_demo.csv", "Religion & culture")
+    if religion_df is None or religion_df.empty:
+        st.info(
+            "Religion & culture demo data will appear once the CSV is available. "
+            "Real survey sources will replace these placeholders in future updates."
         )
+        return
+
+    religion_df = religion_df.sort_values("year")
+    latest = religion_df.iloc[-1]
+
+    kpi_cols = st.columns(3)
+    kpi_cols[0].metric(
+        "% Christian",
+        f"{latest['christian_pct']:.1f}%",
+        help="Demo share identifying as Christian in the most recent year.",
+    )
+    kpi_cols[1].metric(
+        "% Catholic",
+        f"{latest['catholic_pct']:.1f}%",
+        help="Demo share identifying as Catholic in the most recent year.",
+    )
+    kpi_cols[2].metric(
+        "% Unaffiliated",
+        f"{latest['unaffiliated_pct']:.1f}%",
+        help="Demo share identifying with no religion in the most recent year.",
+    )
+
+    st.subheader("Religious affiliation trends")
+    trend_df = religion_df.rename(
+        columns={
+            "christian_pct": "Christian",
+            "catholic_pct": "Catholic",
+            "unaffiliated_pct": "Unaffiliated",
+        }
+    ).set_index("year")
+    st.line_chart(trend_df, height=360)
 
 
 def render_mental_health() -> None:
@@ -249,6 +296,7 @@ def main() -> None:
         "Family Structure",
         "Economics",
         "Crime & Safety",
+        "Religion & Culture",
         "Mental Health",
         "About",
     ]
@@ -270,6 +318,8 @@ def main() -> None:
             "Placeholder content. Crime and public safety indicators will be connected to "
             "standardized datasets (e.g., FBI UCR/NCVS) in later releases. Coming soon!",
         )
+    elif selected_section == "Religion & Culture":
+        render_religion_culture()
     elif selected_section == "Mental Health":
         render_mental_health()
     elif selected_section == "About":
