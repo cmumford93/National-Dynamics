@@ -58,11 +58,11 @@ def generate_unemployment(years: np.ndarray, drivers: dict) -> pd.DataFrame:
 
 
 def generate_cpi(years: np.ndarray) -> pd.DataFrame:
-    base_growth = 1.7 + 0.03 * (years - years[0]) / (years[-1] - years[0])
-    inflation_bump = np.where(years >= 2020, 0.8, 0)
-    noise = np.random.normal(0.05, 0.03, size=len(years))
+    base_growth = 1.65 + 0.02 * (years - years[0]) / (years[-1] - years[0])
+    inflation_bump = np.where(years >= 2018, 0.55 + 0.12 * (years - 2018) / 6, 0)
+    noise = np.random.normal(0.06, 0.025, size=len(years))
     annual_growth = base_growth + inflation_bump + noise
-    annual_growth = np.maximum(annual_growth, 0.5)
+    annual_growth = np.maximum(annual_growth, 0.35)
     cpi_index = 100 + np.cumsum(annual_growth)
     return pd.DataFrame({"year": years, "cpi_index": cpi_index.round(2)})
 
@@ -167,7 +167,7 @@ def generate_religion_trends(years: np.ndarray, drivers: dict) -> pd.DataFrame:
 
 def write_csv(df: pd.DataFrame, path: Path) -> None:
     df.to_csv(path, index=False)
-    print(f"Wrote demo data to {path}")
+    print(f"Wrote data/{path.name}")
 
 
 def main() -> None:

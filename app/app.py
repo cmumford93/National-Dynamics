@@ -60,6 +60,46 @@ def load_marriage_data() -> Tuple[Optional[pd.DataFrame], str]:
     return demo_df.sort_values("year"), "demo"
 
 
+def load_unemployment_data() -> Tuple[Optional[pd.DataFrame], str]:
+    """Load unemployment rates, preferring real data if present."""
+
+    real_df = load_dataset("unemployment_rate_real.csv", "Unemployment rate (BLS)")
+    if real_df is not None and not real_df.empty:
+        return real_df.sort_values("year"), "real"
+
+    demo_df = load_dataset("unemployment_rate_demo.csv", "Unemployment rate (demo)")
+    if demo_df is None:
+        return None, "missing"
+    return demo_df.sort_values("year"), "demo"
+
+
+def load_median_income_data() -> Tuple[Optional[pd.DataFrame], str]:
+    demo_df = load_dataset("median_income_demo.csv", "Median income (demo)")
+    if demo_df is None:
+        return None, "missing"
+    return demo_df.sort_values("year"), "demo"
+
+
+def load_cpi_data() -> Tuple[Optional[pd.DataFrame], str]:
+    demo_df = load_dataset("cpi_index_demo.csv", "CPI index (demo)")
+    if demo_df is None:
+        return None, "missing"
+    return demo_df.sort_values("year"), "demo"
+
+
+def load_crime_data() -> Tuple[Tuple[Optional[pd.DataFrame], str], Tuple[Optional[pd.DataFrame], str]]:
+    violent_df = load_dataset("violent_crime_demo.csv", "Violent crime rate (demo)")
+    mass_df = load_dataset("mass_shootings_demo.csv", "Mass incidents (demo)")
+
+    violent_status = "demo" if violent_df is not None else "missing"
+    mass_status = "demo" if mass_df is not None else "missing"
+
+    return (violent_df.sort_values("year") if violent_df is not None else None, violent_status), (
+        mass_df.sort_values("year") if mass_df is not None else None,
+        mass_status,
+    )
+
+
 def render_overview() -> None:
     st.header("Overview")
     st.caption(
@@ -254,6 +294,167 @@ def render_placeholder(title: str, description: str) -> None:
     st.caption("More details and interactive charts are coming soon.")
 
 
+def render_economics() -> None:
+    st.header("Economics")
+    st.write(
+        "Synthetic economics indicators (demo-only) covering unemployment, household income, "
+        "and price levels. Real BLS/Census data will replace these placeholders in future releases."
+    )
+
+    unemployment_df, unemployment_source = load_unemployment_data()
+    income_df, income_source = load_median_income_data()
+    cpi_df, cpi_source = load_cpi_data()
+
+    if any(df is None or df.empty for df in [unemployment_df, income_df, cpi_df]):
+        st.info(
+            "One or more economic demo CSVs are missing. Ensure unemployment_rate_demo.csv, "
+            "median_income_demo.csv, and cpi_index_demo.csv are present in data/."
+        )
+
+    kpi_cols = st.columns(3)
+
+    if unemployment_df is not None and not unemployment_df.empty:
+        latest_unemp = unemployment_df.iloc[-1]
+        source_note = "BLS (real)" if unemployment_source == "real" else "Demo"
+        kpi_cols[0].metric(
+            "Unemployment rate",
+            f"{latest_unemp['unemployment_rate_pct']:.2f}%",
+            help=f"Latest {source_note} unemployment rate in the dataset.",
+        )
+
+    if income_df is not None and not income_df.empty:
+        latest_income = income_df.iloc[-1]
+        kpi_cols[1].metric(
+            "Median household income",
+            f"${latest_income['median_income']:,.0f}",
+            help="Latest synthetic estimate of median household income (demo).",
+        )
+
+    if cpi_df is not None and not cpi_df.empty:
+        latest_cpi = cpi_df.iloc[-1]
+        prev_cpi = cpi_df.iloc[-2]["cpi_index"] if len(cpi_df) > 1 else None
+        yoy = None if prev_cpi is None else (latest_cpi["cpi_index"] - prev_cpi) / prev_cpi * 100
+        delta = None if yoy is None else f"{yoy:.2f}%"
+        kpi_cols[2].metric(
+            "Price level (CPI index)",
+            f"{latest_cpi['cpi_index']:.2f}",
+            delta=delta,
+            help="Synthetic CPI-style index (demo). Year-over-year change shown when available.",
+        )
+
+    st.caption("Charts below use synthetic demo-only values for illustration.")
+
+    def line_chart(df: pd.DataFrame, y: str, title: str, color: str, y_label: str) -> None:
+        fig = px.line(
+            df,
+            x="year",
+            y=y,
+            markers=True,
+            color_discrete_sequence=[color],
+            hover_data={"year": True, y: True},
+        )
+        fig.update_layout(title=title, template="plotly_white", height=350, yaxis_title=y_label, xaxis_title="Year")
+        st.plotly_chart(fig, use_container_width=True)
+
+    chart_row_1 = st.columns(2)
+    with chart_row_1[0]:
+        if unemployment_df is not None and not unemployment_df.empty:
+            line_chart(
+                unemployment_df,
+                "unemployment_rate_pct",
+                "Unemployment rate (demo)",
+                "#F28E2B",
+                "Unemployment rate (%)",
+            )
+    with chart_row_1[1]:
+        if income_df is not None and not income_df.empty:
+            line_chart(
+                income_df,
+                "median_income",
+                "Median household income (demo)",
+                "#59A14F",
+                "Income (USD)",
+            )
+
+    chart_row_2 = st.columns(1)
+    with chart_row_2[0]:
+        if cpi_df is not None and not cpi_df.empty:
+            line_chart(
+                cpi_df,
+                "cpi_index",
+                "CPI index (demo)",
+                "#4C78A8",
+                "Index (base ~100)",
+            )
+
+
+def render_crime_safety() -> None:
+    st.header("Crime & Safety")
+    st.write(
+        "Synthetic crime indicators (demo-only) focusing on violent crime rates and mass incidents. "
+        "Real FBI and incident databases will replace these placeholder series." 
+    )
+
+    (violent_df, violent_source), (mass_df, mass_source) = load_crime_data()
+
+    if (violent_df is None or violent_df.empty) or (mass_df is None or mass_df.empty):
+        st.info(
+            "Crime demo CSVs missing. Ensure violent_crime_demo.csv and mass_shootings_demo.csv are present in data/."
+        )
+
+    kpi_cols = st.columns(2)
+    if violent_df is not None and not violent_df.empty:
+        latest_violent = violent_df.iloc[-1]
+        kpi_cols[0].metric(
+            "Violent crime rate (per 100k)",
+            f"{latest_violent['violent_crime_rate_per_100k']:.1f}",
+            help="Synthetic violent crime rate for the most recent demo year.",
+        )
+
+    if mass_df is not None and not mass_df.empty:
+        latest_incidents = mass_df.iloc[-1]
+        kpi_cols[1].metric(
+            "Mass incidents (count)",
+            f"{latest_incidents['incidents']}",
+            help="Synthetic count of mass incidents for the most recent demo year.",
+        )
+
+    st.caption("Charts use synthetic demo-only values for illustration; they are not real crime statistics.")
+
+    def line_chart(df: pd.DataFrame, y: str, title: str, color: str, y_label: str) -> None:
+        fig = px.line(
+            df,
+            x="year",
+            y=y,
+            markers=True,
+            color_discrete_sequence=[color],
+            hover_data={"year": True, y: True},
+        )
+        fig.update_layout(title=title, template="plotly_white", height=350, yaxis_title=y_label, xaxis_title="Year")
+        st.plotly_chart(fig, use_container_width=True)
+
+    chart_row = st.columns(2)
+    with chart_row[0]:
+        if violent_df is not None and not violent_df.empty:
+            line_chart(
+                violent_df,
+                "violent_crime_rate_per_100k",
+                "Violent crime rate (demo)",
+                "#E15759",
+                "Crimes per 100,000",
+            )
+
+    with chart_row[1]:
+        if mass_df is not None and not mass_df.empty:
+            line_chart(
+                mass_df,
+                "incidents",
+                "Mass incidents (demo)",
+                "#B07AA1",
+                "Incident count",
+            )
+
+
 def render_family_structure() -> None:
     st.header("Family Structure")
     st.write(
@@ -428,17 +629,9 @@ def main() -> None:
     elif selected_section == "Family Structure":
         render_family_structure()
     elif selected_section == "Economics":
-        render_placeholder(
-            "Economics",
-            "Placeholder content. Economic indicators (e.g., income, employment, inflation) "
-            "will be wired to official data sources in future updates. Coming soon!",
-        )
+        render_economics()
     elif selected_section == "Crime & Safety":
-        render_placeholder(
-            "Crime & Safety",
-            "Placeholder content. Crime and public safety indicators will be connected to "
-            "standardized datasets (e.g., FBI UCR/NCVS) in later releases. Coming soon!",
-        )
+        render_crime_safety()
     elif selected_section == "Religion & Culture":
         render_religion_culture()
     elif selected_section == "Mental Health":
