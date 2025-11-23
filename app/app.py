@@ -5,7 +5,7 @@ crime, and mental health indicators.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import pandas as pd
 import streamlit as st
@@ -41,6 +41,22 @@ def load_dataset(filename: str, friendly_name: str) -> Optional[pd.DataFrame]:
     except Exception as exc:  # pragma: no cover - surface friendly message
         st.warning(f"Could not load {friendly_name} data: {exc}")
     return None
+
+
+def load_marriage_data() -> Tuple[Optional[pd.DataFrame], str]:
+    """Load marriage rates, preferring the real CDC dataset when available."""
+
+    real_df = load_dataset("marriage_rate_real.csv", "Marriage rate (CDC)")
+    if real_df is not None and not real_df.empty:
+        cleaned_real = real_df.rename(
+            columns={"marriage_rate_per_1000_population": "marriage_rate_per_1000"}
+        )
+        return cleaned_real.sort_values("year"), "real"
+
+    demo_df = load_dataset("marriage_rate_demo.csv", "Marriage rate (demo)")
+    if demo_df is None:
+        return None, "missing"
+    return demo_df.sort_values("year"), "demo"
 
 
 def render_overview() -> None:
@@ -145,14 +161,14 @@ def render_placeholder(title: str, description: str) -> None:
 
 
 def render_family_structure() -> None:
-    st.header("Family Structure (Demo)")
+    st.header("Family Structure")
     st.write(
-        "This page currently uses synthetic demo data to prototype the layout. "
-        "It will be replaced with validated sources for marriage and household "
-        "composition trends."
+        "This page prioritizes real CDC National Vital Statistics marriage rates "
+        "when available and falls back to demo data for development."
     )
+    st.caption("(Using real CDC National Vital Statistics marriage rates if available.)")
 
-    marriage_df = load_dataset("marriage_rate_demo.csv", "Marriage rate")
+    marriage_df, marriage_source = load_marriage_data()
     household_df = load_dataset("household_types_demo.csv", "Household types")
 
     if marriage_df is not None and not marriage_df.empty:
@@ -161,6 +177,10 @@ def render_family_structure() -> None:
             marriage_df.set_index("year")["marriage_rate_per_1000"],
             height=320,
         )
+        if marriage_source == "real":
+            st.success("Displaying real CDC/NCHS marriage rates.")
+        else:
+            st.info("Using demo marriage rates until the real dataset is available.")
 
     if household_df is not None and not household_df.empty:
         st.subheader("Household composition trends (demo)")
@@ -173,9 +193,9 @@ def render_family_structure() -> None:
         household_df is None or household_df.empty
     ):
         st.info(
-            "Charts will appear once the demo CSVs are available. This ensures "
-            "the page handles missing files gracefully."
-    )
+            "Charts will appear once the real CDC marriage data or fallback demo "
+            "CSV and the household composition CSV are present."
+        )
 
 
 def render_religion_culture() -> None:
