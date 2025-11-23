@@ -178,6 +178,61 @@ def render_family_structure() -> None:
         )
 
 
+def render_mental_health() -> None:
+    st.header("Mental Health (Demo)")
+    st.write(
+        "This page uses synthetic placeholder values until CDC BRFSS and "
+        "mortality statistics are integrated. Trends and levels are for demo "
+        "illustration only."
+    )
+
+    mental_df = load_dataset("mental_health_demo.csv", "Mental health")
+    if mental_df is None or mental_df.empty:
+        st.info(
+            "Mental health demo data will appear once the CSV is available. "
+            "Real public health sources will replace these placeholders in future releases."
+        )
+        return
+
+    mental_df = mental_df.sort_values("year")
+    latest = mental_df.iloc[-1]
+
+    kpi_cols = st.columns(3)
+    kpi_cols[0].metric(
+        "Depression rate",
+        f"{latest['depression_rate_pct']:.2f}%",
+        help="Demo estimate for the most recent year in the synthetic dataset.",
+    )
+    kpi_cols[1].metric(
+        "Anxiety rate",
+        f"{latest['anxiety_rate_pct']:.2f}%",
+        help="Demo estimate for the most recent year in the synthetic dataset.",
+    )
+    kpi_cols[2].metric(
+        "Suicide rate (per 100k)",
+        f"{latest['suicide_rate_per_100k']:.2f}",
+        help="Demo estimate for the most recent year in the synthetic dataset.",
+    )
+
+    st.subheader("Depression over time")
+    st.line_chart(
+        mental_df.set_index("year")["depression_rate_pct"],
+        height=320,
+    )
+
+    st.subheader("Anxiety over time")
+    st.line_chart(
+        mental_df.set_index("year")["anxiety_rate_pct"],
+        height=320,
+    )
+
+    st.subheader("Suicide rate over time")
+    st.line_chart(
+        mental_df.set_index("year")["suicide_rate_per_100k"],
+        height=320,
+    )
+
+
 def main() -> None:
     # App title and description
     st.title("National Dynamics")
@@ -216,11 +271,7 @@ def main() -> None:
             "standardized datasets (e.g., FBI UCR/NCVS) in later releases. Coming soon!",
         )
     elif selected_section == "Mental Health":
-        render_placeholder(
-            "Mental Health",
-            "Placeholder content. Mental and behavioral health indicators will be drawn from "
-            "reputable public sources in subsequent updates. Coming soon!",
-        )
+        render_mental_health()
     elif selected_section == "About":
         render_placeholder(
             "About",
