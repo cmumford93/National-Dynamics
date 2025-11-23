@@ -322,6 +322,13 @@ def main() -> None:
     ]
     selected_section = st.sidebar.radio("Select a page", nav_options)
 
+    st.sidebar.divider()
+    page_link = getattr(st.sidebar, "page_link", None)
+    if callable(page_link):
+        page_link("pages/03_variable_comparison.py", label="Variable Comparison (Beta)")
+    else:
+        st.sidebar.caption("Variable Comparison (Beta) available from the Streamlit pages menu.")
+
     if selected_section == "Overview":
         render_overview()
     elif selected_section == "Family Structure":

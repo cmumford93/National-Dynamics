@@ -19,3 +19,6 @@ Welcome to the National Dynamics MVP dashboard project. This repository will hou
 - Keep automation and helper utilities in `scripts/`.
 
 This layout establishes the foundation for the MVP dashboard and can be expanded as development progresses.
+
+## Variable Comparison Explorer
+The "Variable Comparison (Beta)" page lets you pick any two numeric indicators from the datasets in `data/` and visualize their relationship. After selecting variables, the tool produces a scatter plot with a linear regression line, reports the Pearson correlation coefficient, highlights the largest residual outliers, and auto-generates a short summary describing the strength and direction of the correlation over the available years.
