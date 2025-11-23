@@ -141,6 +141,41 @@ def render_overview() -> None:
 def render_placeholder(title: str, description: str) -> None:
     st.header(title)
     st.write(description)
+    st.caption("More details and interactive charts are coming soon.")
+
+
+def render_family_structure() -> None:
+    st.header("Family Structure (Demo)")
+    st.write(
+        "This page currently uses synthetic demo data to prototype the layout. "
+        "It will be replaced with validated sources for marriage and household "
+        "composition trends."
+    )
+
+    marriage_df = load_dataset("marriage_rate_demo.csv", "Marriage rate")
+    household_df = load_dataset("household_types_demo.csv", "Household types")
+
+    if marriage_df is not None and not marriage_df.empty:
+        st.subheader("Marriage rate (per 1,000) over time")
+        st.line_chart(
+            marriage_df.set_index("year")["marriage_rate_per_1000"],
+            height=320,
+        )
+
+    if household_df is not None and not household_df.empty:
+        st.subheader("Household composition trends (demo)")
+        st.area_chart(
+            household_df.set_index("year"),
+            height=360,
+        )
+
+    if (marriage_df is None or marriage_df.empty) or (
+        household_df is None or household_df.empty
+    ):
+        st.info(
+            "Charts will appear once the demo CSVs are available. This ensures "
+            "the page handles missing files gracefully."
+        )
 
 
 def main() -> None:
@@ -167,35 +202,31 @@ def main() -> None:
     if selected_section == "Overview":
         render_overview()
     elif selected_section == "Family Structure":
-        render_placeholder(
-            "Family Structure",
-            "Placeholder content. Family-related indicators (e.g., marriage, divorce, "
-            "household composition) will integrate validated datasets in upcoming iterations.",
-        )
+        render_family_structure()
     elif selected_section == "Economics":
         render_placeholder(
             "Economics",
             "Placeholder content. Economic indicators (e.g., income, employment, inflation) "
-            "will be wired to official data sources in future updates.",
+            "will be wired to official data sources in future updates. Coming soon!",
         )
     elif selected_section == "Crime & Safety":
         render_placeholder(
             "Crime & Safety",
             "Placeholder content. Crime and public safety indicators will be connected to "
-            "standardized datasets (e.g., FBI UCR/NCVS) in later releases.",
+            "standardized datasets (e.g., FBI UCR/NCVS) in later releases. Coming soon!",
         )
     elif selected_section == "Mental Health":
         render_placeholder(
             "Mental Health",
             "Placeholder content. Mental and behavioral health indicators will be drawn from "
-            "reputable public sources in subsequent updates.",
+            "reputable public sources in subsequent updates. Coming soon!",
         )
     elif selected_section == "About":
         render_placeholder(
             "About",
             "This dashboard is under active development. Demo data is used for now; future "
             "versions will feature reproducible pipelines, methods, and source documentation "
-            "for all indicators.",
+            "for all indicators. Coming soon!",
         )
 
     # Notes for future development
