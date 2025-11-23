@@ -7,6 +7,10 @@ crime, and mental health indicators.
 from pathlib import Path
 
 import pandas as pd
+A minimal placeholder dashboard for U.S. social, economic, religious, family,
+crime, and mental health indicators.
+"""
+
 import streamlit as st
 
 # Configure the page
@@ -198,4 +202,17 @@ st.info(
     "Demo data is currently loaded from synthetic CSVs in the data/ directory. "
     "Replace these with curated federal datasets and documented ETL pipelines "
     "as the platform matures."
+# Page content based on selection
+st.header(f"{selected_section} (Placeholder)")
+
+# Placeholder areas for future content
+st.write(
+    "Future sections will include charts, datasets, key performance indicators "
+    "(KPIs), and narrative analysis tailored to each domain."
+)
+
+# Notes for future development
+st.info(
+    "Add data loading, preprocessing, and visualization components in the "
+    "sections above once datasets are available."
 )
